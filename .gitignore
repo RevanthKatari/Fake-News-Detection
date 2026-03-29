@@ -1,0 +1,8 @@
+data/*.csv
+cache/
+saved_models/
+results/
+__pycache__/
+*.pyc
+venv/
+.ipynb_checkpoints/
