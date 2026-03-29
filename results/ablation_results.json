@@ -1,0 +1,30 @@
+{
+  "Full Model": {
+    "accuracy": 0.9684,
+    "precision": 0.9687,
+    "recall": 0.9684,
+    "f1": 0.9684,
+    "auc": 0.9929
+  },
+  "No CNN": {
+    "accuracy": 0.9676,
+    "precision": 0.9677,
+    "recall": 0.9676,
+    "f1": 0.9676,
+    "auc": 0.9945
+  },
+  "No Attention": {
+    "accuracy": 0.9645,
+    "precision": 0.9645,
+    "recall": 0.9645,
+    "f1": 0.9645,
+    "auc": 0.9932
+  },
+  "BiGRU Only": {
+    "accuracy": 0.9627,
+    "precision": 0.9628,
+    "recall": 0.9627,
+    "f1": 0.9627,
+    "auc": 0.9928
+  }
+}
