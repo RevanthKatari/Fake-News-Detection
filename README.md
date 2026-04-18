@@ -1,123 +1,54 @@
-# Fake News Detection Using LLM-Enhanced Hybrid CNN-BiGRU with Sequential Attention
+# Multimodal Fake News Detection Pipeline
 
-University of Windsor — Intro to AI
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c)
+![Transformers](https://img.shields.io/badge/HuggingFace-Transformers-orange)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
-## Team
+## Overview
+This repository contains the official implementation of the **Multimodal Fake News Detection** project. Moving beyond traditional text-only classifiers, this pipeline integrates **Text, Image, Audio, and Video** modalities to detect inconsistencies and fabricated content across diverse media formats. 
 
-| Name | Role |
-|---|---|
-| Revanth Katari | Model architecture & LLM embeddings |
-| Kruthika Shantha Murthy | Data preprocessing & EDA |
-| Naga Sai Bharath Potla | CNN + BiGRU implementation & hyperparameter tuning |
-| Kavya Pagaria | Sequential attention & ablation / interpretability |
-| Sai Srinivas Uppara | Experiments, evaluation & result documentation |
+The architecture abandons basic concatenation methods in favor of advanced **Cross-Attention** and **Gated Fusion** mechanisms. By leveraging state-of-the-art transformer models for feature extraction, the system is highly resilient to noisy or missing modalities, establishing a robust standard for modern misinformation detection.
 
-## Architecture
+---
 
-```
-News Article
-    │
-    ▼
-Sentence Splitting (up to 16 sentences)
-    │
-    ▼
-all-MiniLM-L6-v2  →  384-dim embedding per sentence
-    │
-    ▼
-CNN (multi-kernel: 3,5,7)  →  local feature extraction
-    │
-    ▼
-BiGRU (2-layer, bidirectional)  →  sequential modeling
-    │
-    ▼
-Sequential Attention  →  interpretable weighting
-    │
-    ▼
-Fully Connected  →  Real / Fake
-```
+## Key Features
 
-## Quick Start
+* **Comprehensive Multimodality:** Processes articles, images, audio clips, and deepfake videos.
+* **Advanced Embedding Extraction:** Utilizes SBERT, CLIP, TIMM, Wav2Vec 2.0, and VideoMAE.
+* **Dynamic Fusion:** * *Cross-Attention:* Maps contextual relationships across different media types.
+    * *Gated Fusion:* Automatically weights modality importance, allowing the model to adapt when inputs (like video or audio) are missing.
+* **Optimized Training:** Embeddings are pre-extracted and stored as `.npy` files to eliminate computational bottlenecks during training.
 
-### 1. Install dependencies
+---
 
-```bash
-pip install -r requirements.txt
-```
+## System Architecture
 
-### 2. Run notebooks in order
+### 1. Baseline Models
+* **Text-Only Baseline:** A BiLSTM processing SBERT embeddings to capture sequential dependencies.
+* **Bimodal Baseline:** A lightweight Text + Image model utilizing Gated Fusion.
 
-Open each notebook in Jupyter and run all cells:
+### 2. Proposed Final Model
+The core architecture processes four distinct data streams:
+1.  **Text:** Sentence-BERT (`all-MiniLM-L6-v2`) -> 384-dim semantic vectors.
+2.  **Image:** CLIP (Contrastive Language-Image Pretraining) & TIMM (EfficientNet/ViT).
+3.  **Audio:** Wav2Vec 2.0 -> raw waveform and pitch representations.
+4.  **Video:** VideoMAE -> spatial-temporal feature extraction.
 
-| # | Notebook | What it does | Time estimate |
-|---|---|---|---|
-| 1 | `notebooks/1_data_preparation.ipynb` | EDA + compute & cache LLM embeddings | ~15 min (GPU) / ~2 hr (CPU) |
-| 2 | `notebooks/2_baseline_models.ipynb` | Train LogReg, BiLSTM, BiGRU baselines | ~10 min (GPU) |
-| 3 | `notebooks/3_hybrid_model.ipynb` | Train proposed CNN-BiGRU-Attention | ~10 min (GPU) |
-| 4 | `notebooks/4_attention_ablation.ipynb` | Ablation study + attention visualization | ~30 min (GPU) |
-| 5 | `notebooks/5_experiment_results.ipynb` | Consolidated comparison & charts | Instant |
+These embeddings are integrated using Cross-Attention, followed by Gated Fusion:
+`Fused = gate * modality_1 + (1 - gate) * modality_2`
 
-> **Tip:** Notebook 1 caches embeddings to `cache/`. After the first run, all subsequent notebooks load instantly.
+The fused representation is passed through a fully connected transformer-head classifier to output the veracity label (`Real` or `Fake`).
 
-### 3. Launch the web app
+---
 
-```bash
-cd app
-python app.py
-```
+## Datasets
 
-Open [http://localhost:5000](http://localhost:5000) in your browser.
+The pipeline is trained and evaluated on a balanced, unified dataset comprising 43,131 samples from the following sources:
+* **WELFake:** Text-based real vs. fake news.
+* **FakeNewsNet:** Text + Image multimodal data.
+* **FakeAVCeleb:** Audio + Video deepfake datasets.
 
-## Folder Structure
+*Note: The datasets are unified into a single tabular format and downsampled to balance the `text_only`, `text_image`, and `audio_video` categories.*
 
-```
-FINAL/
-├── data/
-│   └── WELFake_Dataset.csv          # 72,134 labeled articles
-├── cache/                            # auto-created by notebook 1
-│   ├── sentence_embeddings.npy       # (N, 16, 384) cached embeddings
-│   └── labels.npy
-├── src/
-│   ├── config.py                     # all paths, hyperparameters
-│   ├── models.py                     # BiLSTM, BiGRU, Hybrid CNN-BiGRU-Attn
-│   ├── data_utils.py                 # data loading, embedding, splits
-│   └── train_utils.py                # train/evaluate/attention utilities
-├── notebooks/
-│   ├── 1_data_preparation.ipynb      # Kruthika
-│   ├── 2_baseline_models.ipynb       # Sai Srinivas
-│   ├── 3_hybrid_model.ipynb          # Revanth
-│   ├── 4_attention_ablation.ipynb    # Kavya
-│   └── 5_experiment_results.ipynb    # Naga Sai Bharath
-├── app/
-│   ├── app.py                        # Flask server
-│   └── templates/index.html          # Web UI
-├── results/                          # auto-created (JSON metrics)
-├── saved_models/                     # auto-created (.pt model weights)
-├── requirements.txt
-└── README.md
-```
-
-## Dataset
-
-**WELFake** — 72,134 news articles labeled as Real (0) or Fake (1), collected from multiple online sources.
-
-> Verma et al., "WELFake: A Large-Scale Dataset for Fake News Detection," IEEE TCSS, 2023.
-
-## Models
-
-| Model | Type | Input |
-|---|---|---|
-| Logistic Regression | Baseline (ML) | Mean-pooled 384-dim LLM embeddings |
-| BiLSTM + Attention | Baseline (DL) | Sentence-level 384-dim embeddings |
-| BiGRU + Attention | Baseline (DL) | Sentence-level 384-dim embeddings |
-| **CNN-BiGRU-Attention** | **Proposed** | Sentence-level 384-dim embeddings |
-
-## Portability
-
-This project is fully self-contained. To run on another machine:
-
-1. Copy the entire `FINAL/` folder
-2. `pip install -r requirements.txt`
-3. Run notebooks 1 through 5
-4. Launch `app/app.py`
-
-All paths are relative. No hardcoded directories. No pre-computed files required.
+---
